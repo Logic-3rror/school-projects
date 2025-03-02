@@ -6,7 +6,7 @@ screen = py.display.set_mode((WIDTH, HEIGHT))
 py.display.set_caption("Frogger Clone")
 
 frog = py.image.load("frog.png")
-frog = py.transform.scale(frog, (40,40))#
+frog = py.transform.scale(frog, (40,40))
 frog_rect = frog.get_rect()
 
 running = True
