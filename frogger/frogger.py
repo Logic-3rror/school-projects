@@ -45,9 +45,13 @@ class Frog(py.sprite.Sprite):
             self.rect.move_ip(0, 40)  
 
 
-class Infra:
-    def __init__():
-        pass
+class Road(py.sprite.Sprite):
+    def __init__(self):
+        self.cars = []
+
+    def draw_road(self):
+        py.draw.rect(screen, ROAD_COLOR, (0, HEIGHT - 320, WIDTH, 160))
+
 
 
 ## temprorary tiles ##
@@ -59,8 +63,10 @@ def draw_grid():
     # Draw horizontal lines
     for row in range(ROWS + 1):  # +1 to draw line at the bottom edge
         py.draw.line(screen, GRID_COLOR, (0, row * TILE_SIZE), (WIDTH, row * TILE_SIZE))
-
+        
+        
 frog = Frog()
+road = Road()
 sprites = py.sprite.Group(frog)
 
 # Game loop
@@ -74,6 +80,8 @@ while running:
             frog.move_frog()   
     
     draw_grid()
+
+    road.draw_road()    
 
     sprites.update()
     sprites.draw(screen)
