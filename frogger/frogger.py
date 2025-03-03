@@ -9,7 +9,7 @@ py.display.set_caption("Frogger Clone")
 
 animation = py.time.Clock()
 
-# Load and scale frog image
+
 frog = py.image.load("frogger/frog.png")
 frog = py.transform.scale(frog, (40, 40))
 
@@ -18,10 +18,10 @@ TILE_SIZE = 40
 ROWS = HEIGHT // TILE_SIZE
 COLS = WIDTH // TILE_SIZE
 
-# Colors for tiles
-GRASS_COLOR = (0, 150, 0)  # Grass (background)
-ROAD_COLOR = (50, 50, 50)  # Road color
-WATER_COLOR = (0, 0, 255)  # Water color
+# Colors
+GRASS_COLOR = (0, 150, 0)  
+ROAD_COLOR = (50, 50, 50)  
+WATER_COLOR = (0, 0, 255)  
 GRID_COLOR = (255, 255, 255) 
 
 
@@ -45,9 +45,13 @@ class Frog(py.sprite.Sprite):
             self.rect.move_ip(0, 40)  
 
 
-class Infra:
-    def __init__():
-        pass
+class Road(py.sprite.Sprite):
+    def __init__(self):
+        self.cars = []
+
+    def draw_road(self):
+        py.draw.rect(screen, ROAD_COLOR, (0, HEIGHT - 320, WIDTH, 160))
+
 
 
 ## temprorary tiles ##
@@ -59,11 +63,13 @@ def draw_grid():
     # Draw horizontal lines
     for row in range(ROWS + 1):  # +1 to draw line at the bottom edge
         py.draw.line(screen, GRID_COLOR, (0, row * TILE_SIZE), (WIDTH, row * TILE_SIZE))
-
+        
+        
 frog = Frog()
+road = Road()
 sprites = py.sprite.Group(frog)
 
-# Game loop
+### Game loop ###
 running = True
 while running:
     screen.fill((0, 150, 0)) 
@@ -74,6 +80,8 @@ while running:
             frog.move_frog()   
     
     draw_grid()
+
+    road.draw_road()    
 
     sprites.update()
     sprites.draw(screen)
