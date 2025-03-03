@@ -73,7 +73,7 @@ class Road(py.sprite.Sprite):
         x, y = WIDTH, HEIGHT - 320
         py.draw.rect(screen, GRAY, (0, HEIGHT - 320, WIDTH, 160))
         py.draw.line(screen, LIGHT_GRAY, (0,y), (x, y), 5)
-        py.draw.line(screen, LIGHT_GRAY, (0,y+160), (x, y+160), 5)
+        py.draw.line(screen, LIGHT_GRAY, (0,y), (x, y), 5)
 
 
 
