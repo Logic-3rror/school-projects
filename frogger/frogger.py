@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import pygame as py
 
 py.init()
@@ -90,3 +91,5 @@ while running:
     animation.tick(60)
 
 py.quit()
+=======
+>>>>>>> 4f607201d519e09c2741d25c917c957f0cd6296d
