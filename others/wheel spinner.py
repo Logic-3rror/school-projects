@@ -1,13 +1,6 @@
 from pygame import*
 import random, math
 
-'''
-
-Just to be clear I did get some help from AI.
-
-
-'''
-
 ## display ##
 init()
 
