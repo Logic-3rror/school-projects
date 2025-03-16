@@ -1,7 +1,5 @@
 import pygame as py, random
 
-## fix overlap ## 
-
 py.init()
 
 ## Window Settings ##
