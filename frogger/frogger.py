@@ -1,6 +1,5 @@
 import pygame as py, random
 
-
 py.init()
 
 ## Window Settings ##
