@@ -1,6 +1,5 @@
 import pygame as py, random
 
-## fix overlap ## 
 
 py.init()
 
@@ -47,7 +46,7 @@ class Frog(py.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = frog_
-        self.original_pos = (WIDTH // 2 - 25, HEIGHT)  # Store the starting position
+        self.original_pos = (WIDTH // 2 , HEIGHT)  # Store the starting position
         self.rect = self.image.get_rect(midbottom=self.original_pos)
         self.angle = 0
 
@@ -71,6 +70,11 @@ class Frog(py.sprite.Sprite):
     
     def reset_pos(self):
          self.rect = self.image.get_rect(midbottom=self.original_pos)
+        
+    def on_tile(self):
+        frog.rect.x = (frog.rect.x//TILE_SIZE)*TILE_SIZE
+        frog.rect.y = (frog.rect.y//TILE_SIZE)*TILE_SIZE
+
 
 class Car(py.sprite.Sprite):
     def __init__(self, image, x, y, speed, car_group):
@@ -84,8 +88,9 @@ class Car(py.sprite.Sprite):
     def update(self):
         self.rect.x += self.speed
 
-        if self.rect.x < -190 or self.rect.x > WIDTH +180:
+        if self.rect.x < -190 or self.rect.x > WIDTH +190:
             self.kill()
+    
 
 class LaneManager(py.sprite.Sprite):
     def __init__(self, num_lanes, y):
@@ -134,8 +139,23 @@ class LaneManager(py.sprite.Sprite):
             else:
                 obj = Log(image, x, lane["y"] + 25, speed, self.obj_group)
 
+              # Ensure no collision before adding
+        if self.spawn(obj):
+            self.obj_group.add(obj)
+        else:
+            # If collision happens, either move it forward or delay spawning
+            attempts = 0
+            while not self.spawn(obj) and attempts < 3:  # Try up to 3 times
+                if lane["direction"] == "right":
+                    obj.rect.x += 50  # Move forward
+                else:
+                    obj.rect.x -= 50  # Move backward
+                attempts += 1
+
             if self.spawn(obj):
                 self.obj_group.add(obj)
+            else:
+                del obj  # If still colliding after 3 attempts, don't spawn this cycle
 
     def draw_obj(self):
         self.obj_group.draw(screen)
@@ -149,7 +169,6 @@ class Road(LaneManager):
         super().__init__(8, HEIGHT - (9 * TILE_SIZE))
         self.car_group = py.sprite.Group()
 
-    ## MAKE BETTER ROAD DESIGN FR ##
     def draw_lanes(self):
         ## road ##
         for i in self.lanes:
@@ -189,16 +208,9 @@ class Log(py.sprite.Sprite):
     def update(self):
         self.rect.x += self.speed
 
-        if self.rect.x < -120 or self.rect.x > WIDTH +120:
-            if self.log_group and self.respawn():
-                self.kill()
+        if self.rect.x < -300 or self.rect.x > WIDTH + 300:    
+            self.kill()
 
-    def respawn(self):
-        if self.log_group:
-            for log in self.log_group:
-                if self.rect.colliderect(log.rect.inflate(150, 0)) or log == self:
-                    return False
-        return True 
 
 class River(LaneManager):
     def __init__(self):
@@ -213,8 +225,13 @@ class River(LaneManager):
     
     def draw_land(self):
         for i in range(1, 6):
-            x = py.draw.rect(screen, BLUE, (250*i-200, 150, 150, TILE_SIZE*2))
-            self.land.append(x)
+            rect = py.Rect(250 * i - 200, 150, 150, TILE_SIZE * 2)
+        
+            # Draw the rectangle to the screen
+            py.draw.rect(screen, BLUE, rect)
+        
+            # Add the rectangle to the land list
+            self.land.append(rect)
 
     ## make frog at center of log for now
     def collision(self, frog):
@@ -225,6 +242,7 @@ class River(LaneManager):
                         frog.rect.x = log.rect.centerx 
                         frog.rect.y = log.rect.centery - 25
                         
+                        
                         self.frog_on_log =  True  
                         return self.frog_on_log 
             # If no log is touching the frog, reset to spawn
@@ -232,14 +250,15 @@ class River(LaneManager):
         return self.frog_on_log 
     
     def off_log(self, frog):
-        if self.frog_on_log:
+        if not self.frog_on_log:
             if 200 < frog.rect.y < 600:
                 return True
             else:
-                for i in self.lane:
-                    if frog.rect.colliderect(i.rect):
+                for i in self.land:
+                    if frog.rect.colliderect(i):
                         return True
         return False
+
 
     
 
@@ -293,20 +312,19 @@ while running:
     river.update()
    
 
-
     if car_CD == 0:
         x = random.randint(1,7)
         car = random.choice(cars)
-        road.add_obj(x,"car", -7, car)
+        road.add_obj(x,"car", -6, car)
 
-        car_CD = random.randint(1, 20)
+        car_CD = random.randint(1, 15)
     car_CD -=1    
 
     if log_CD == 0:
         y = random.randint(1,5)
-        river.add_obj(1300,"log", -7, random.choice(log_type))
+        river.add_obj(1300,"log", -6, random.choice(log_type))
 
-        log_CD = random.randint(10, 20)
+        log_CD = random.randint(1, 15)
         
     log_CD -=1    
 
@@ -318,9 +336,9 @@ while running:
             frog.reset_pos()
         
 
-
     sprite.draw(screen)
     sprite.update()
+    frog.on_tile()
     draw_grid()
 
     
