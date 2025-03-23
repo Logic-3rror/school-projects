@@ -262,7 +262,7 @@ class River(LaneManager):
         self.log = None
 
     def draw_lanes(self):
-        ## river ##
+        ## draw river ##
         for i in self.lanes:
             py.draw.rect(screen, BLUE, (0, self.lanes[i]["y"], WIDTH, TILE_SIZE))
     
@@ -270,10 +270,8 @@ class River(LaneManager):
         for i in range(1, 6):
             rect = py.Rect(250 * i - 200, 200, 150, TILE_SIZE)
         
-            # Draw the rectangle to the screen
             py.draw.rect(screen, BLUE, rect)
-        
-            # Add the rectangle to the land list
+
             self.land.append(rect)
 
     ## make frog at center of log for now
@@ -288,17 +286,18 @@ class River(LaneManager):
                         
                         self.frog_on_log =  True  
                         return self.frog_on_log 
+                    
             # If no log is touching the frog, reset to spawn
         self.frog_on_log = False 
         return self.frog_on_log 
     
     def off_log(self, frog):
         if not self.frog_on_log:
-            if 200 < frog.rect.y < 600:
+            if 200 < frog.rect.y < 600:  # between river
                 return True
             else:
                 for i in self.land:
-                    if frog.rect.colliderect(i):
+                    if frog.rect.colliderect(i): 
                         return True
         return False
 
@@ -308,6 +307,8 @@ class GameState:
         self.frog_score = 0
         self.lives = lives
         self.font = py.font.Font("frogger/PressStart2P.ttf",60)
+        self.font2 = py.font.Font("frogger/PressStart2P.ttf",40) # smaller font
+        self.hi_score = 0 
         self.time = 60
         self.lose = False
         self.frame_count = 0
@@ -317,7 +318,7 @@ class GameState:
 
     def check_win(self, frog, type):
         if frog.rect.y < 150:
-            self.frog_score += 10*self.time + 50
+            self.frog_score += 10*self.time + 50  # score based on time remaining
             return "win"
         
         elif not type:
@@ -331,9 +332,14 @@ class GameState:
             return "lose"
         
     def score(self):
-        # Render the score as text
         score_text = self.font.render(f"SCORE:{self.frog_score}", True, WHITE)
         screen.blit(score_text, (10, 10)) 
+
+        hi_score_text = self.font2.render(f"HIGH SCORE", True, (255, 90, 170))  # the text
+        screen.blit(hi_score_text, (750, 10)) 
+
+        hi_score_text2 = self.font2.render(f"{self.hi_score}", True, (255, 90, 170)) # the number
+        screen.blit(hi_score_text2, (935, 60)) 
 
     def show_lives(self, image):
         image = py.transform.scale(image, (70, 70))
@@ -342,8 +348,8 @@ class GameState:
 
     def update_timer(self):
         self.frame_count += 1
-        if self.frame_count >= 60:  # Every 60 frames (1 second)
-            self.frame_count = 0  # Reset frame count
+        if self.frame_count >= 60:  # Every 60 frames 1 second
+            self.frame_count = 0 
             if self.time > 0:
                 self.time -= 1  
 
@@ -451,14 +457,18 @@ while running:
     gt.show_lives(Frog.frog_)
     gt.show_time()
 
-    if gt.check_win(frog, win) == "win":
+    temp = gt.check_win(frog, win)
+
+    if temp == "win":
         frog.reset_pos()
-    elif gt.check_win(frog, win) == "lose":
-        py.quit()
+
+    elif temp == "lose":
+        gt.hi_score = gt.frog_score
+        #gt.reset() 
     else:
         win = True
 
-    #draw_grid()
+    draw_grid()
 
     animation.tick(60)
     py.display.flip()
