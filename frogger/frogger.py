@@ -9,21 +9,8 @@ py.display.set_caption("Frogger")
 
 animation = py.time.Clock()
 
-## Load and Scale Images ##
-frog_ = py.image.load("frogger/images/frog.png")
-frog_ = py.transform.scale(frog_, (50, 50))
 
-
-cars = [
-    py.image.load("frogger/images/car1.png"),
-    py.image.load("frogger/images/car2L.png"),
-    py.image.load("frogger/images/car3L.png"),
-    #py.image.load("frogger/images/car4.png")
-]
-
-
-cars = [py.transform.scale(i, (100,50)) for i in cars]*2
-
+lilypad = py.image.load("frogger/images/lilypad.png")
 
 ## Sound ##
 py.mixer.music.load("frogger/music.mp3")
@@ -38,13 +25,17 @@ GREEN = (0, 150, 0)
 GRAY = (50, 50, 50)
 LIGHT_GRAY = (150, 150, 150)
 BLUE = (0, 0, 255)
+BLACK = (0,0,0)
 WHITE = (255, 255, 255)
 
 ## Frog Class ##
 class Frog(py.sprite.Sprite):
+    frog_ = py.image.load("frogger/images/frog.png")
+    frog_ = py.transform.scale(frog_, (50, 50))
+    
     def __init__(self):
         super().__init__()
-        self.image = frog_
+        self.image = self.frog_
         self.original_pos = (WIDTH // 2 , HEIGHT)  # Store the starting position
         self.rect = self.image.get_rect(midbottom=self.original_pos)
         self.angle = 0
@@ -74,8 +65,14 @@ class Frog(py.sprite.Sprite):
         frog.rect.x = (frog.rect.x//TILE_SIZE)*TILE_SIZE
         frog.rect.y = (frog.rect.y//TILE_SIZE)*TILE_SIZE
 
-
 class Car(py.sprite.Sprite):
+    cars = [
+        py.image.load("frogger/images/car1.png"),
+        py.image.load("frogger/images/car2L.png"),
+        py.image.load("frogger/images/car3L.png"),
+    ]
+    cars = [py.transform.scale(i, (100,50)) for i in cars]*2
+    
     def __init__(self, image, x, y, speed, car_group):
         super().__init__()
         self.car_group = car_group
@@ -90,71 +87,113 @@ class Car(py.sprite.Sprite):
         if self.rect.x < -190 or self.rect.x > WIDTH +190:
             self.kill()
     
+class LilyPad(py.sprite.Sprite):
+    lilypad = py.image.load("frogger/images/lilypad.png")
+    
+    def __init__(self, image, x, y, speed, lily_group):
+        super().__init__()
+        self.log_group = lily_group
+        self.image = image
+        self.rect = self.image.get_rect(center=(x, y))
+        self.speed = speed
+        self.spawn_x = x
+        
+    def update(self):
+        self.rect.x += self.speed
+
+        if self.rect.x < -300 or self.rect.x > WIDTH + 300:    
+            self.kill()
 
 class LaneManager(py.sprite.Sprite):
-    def __init__(self, num_lanes, y):
+    def __init__(self, num_lanes, y, type):
         super().__init__()
         self.obj_group = py.sprite.Group()
         self.lanes = {}
+        self.num_lanes = num_lanes
         self.direction = ["right","left"]
+        self.river_obj_type = ["log", "lily"]
         self.y = y
+        self.log_type_  = ["small","medium", "large"]
+        self.num_logs = 1
+        
+        self.add_lanes(type)
 
-        for i in range(num_lanes):  # 8 lanes
-            obj_y = y + (i * TILE_SIZE)
+    def log_type(self, type):
+        match type:
+            case "small":
+                image = py.image.load("frogger/images/small.png")
+                self.num_logs = random.randint(1,3)
+            case "medium":
+                image = py.image.load("frogger/images/medium.png")
+                self.num_logs = random.randint(1,2)
+            case "large":
+                image = py.image.load("frogger/images/large.png")
+                self.num_logs = 1
+            case _:
+                return type, None
+        return image, self.num_logs
+    
+    def add_lanes(self, type):
+        obj_type = random.choice(self.river_obj_type)
+        for i in range(self.num_lanes):  # 8 lanes
+            obj_y = self.y + (i * TILE_SIZE)
+            if type == "river":
+                obj_type = "lily" if obj_type == "log" else "log" 
             self.lanes[i] = {
                 "y": obj_y,
-                "direction": random.choice(self.direction)  # Randomly set direction once
+                "direction": random.choice(self.direction),  # Randomly set direction once
+                "object" : obj_type
             }
+                    
 
     def spawn(self, obj):
         for object in self.obj_group:
-            if obj != object and obj.rect.colliderect(object.rect.inflate(150, 0)):
+            if obj != object and obj.rect.colliderect(object.rect):
                 return False
         return True
     
-    def add_obj(self, x, obj_type, speed, type):
-        if self.lanes:
-            match type:
-                case "small":
-                    image = py.image.load("frogger/images/small.png")
-                case "medium":
-                    image = py.image.load("frogger/images/medium.png")
-                case "large":
-                    image = py.image.load("frogger/images/large.png")
-                case _:
-                    image = type
+    def add_obj(self, x, obj_type, speed, img):
+        # temp fix
+        if obj_type == "car":
+            image = img
+        else:
+            image, i = self.log_type(random.choice(self.log_type_))
 
+        if self.lanes:
             lane = random.choice(list(self.lanes.values()))
             if lane["direction"] == "right":#
                 speed *= -1
-                x = -120
+                x = -130
             elif lane["direction"] == "left":
                 image = py.transform.rotate(image, 180)
                 speed *= 1
-                x = WIDTH + 120
+                x = WIDTH + 130
+            
 
-            if obj_type == "car":
+            if obj_type == "log":
+                for i in range(self.num_logs):
+                    log_x = x - i * (image.get_width())  # Adjust spacing to prevent overlap
+                    obj = Log(image, log_x, lane["y"] + 25, speed, self.obj_group)
+
+                    if self.spawn(obj) and lane["object"] == "log":  # no collision
+                        self.obj_group.add(obj)
+
+            elif obj_type == "lily":
+                for j in range(3):
+                    lil_x = x - j * (image.get_width()-100) 
+                    obj = LilyPad(img, lil_x, lane["y"] +25, speed, self.obj_group)
+
+                    if self.spawn(obj) and lane["object"] == "lily":  # no collision
+                        self.obj_group.add(obj)
+                        
+            else:
                 obj = Car(image, x, lane["y"] + 25, speed, self.obj_group)
-            else:
-                obj = Log(image, x, lane["y"] + 25, speed, self.obj_group)
 
-              # Ensure no collision before adding
-        if self.spawn(obj):
-            self.obj_group.add(obj)
-        else:
-            # If collision happens, either move it forward or delay spawning
-            attempts = 0
-            while not self.spawn(obj) and attempts < 3:  # Try up to 3 times
-                if lane["direction"] == "right":
-                    obj.rect.x += 50  # Move forward
-                else:
-                    obj.rect.x -= 50  # Move backward
-                attempts += 1
-
-            if self.spawn(obj):
-                self.obj_group.add(obj)
-            else:
-                del obj  # If still colliding after 3 attempts, don't spawn this cycle
+              # no collision before adding
+                if self.spawn(obj):
+                    self.obj_group.add(obj)
+        
+        
 
     def draw_obj(self):
         self.obj_group.draw(screen)
@@ -165,7 +204,7 @@ class LaneManager(py.sprite.Sprite):
 ## Road Class ##
 class Road(LaneManager):
     def __init__(self):
-        super().__init__(8, HEIGHT - (9 * TILE_SIZE))
+        super().__init__(8, HEIGHT - (9 * TILE_SIZE), None)
         self.car_group = py.sprite.Group()
 
     def draw_lanes(self):
@@ -190,9 +229,13 @@ class Road(LaneManager):
 
     
     def collision(self, frog):
+        bool_ = False
         for car in self.obj_group:
             if frog.rect.colliderect(car.rect):
-                return True
+                bool_ = True
+                break
+        return bool_ 
+            
 
 
 class Log(py.sprite.Sprite):
@@ -213,9 +256,10 @@ class Log(py.sprite.Sprite):
 
 class River(LaneManager):
     def __init__(self):
-        super().__init__(7,(2 * TILE_SIZE+150))
+        super().__init__(7,(2 * TILE_SIZE+150), "river")
         self.frog_on_log = None
         self.land = []
+        self.log = None
 
     def draw_lanes(self):
         ## river ##
@@ -224,7 +268,7 @@ class River(LaneManager):
     
     def draw_land(self):
         for i in range(1, 6):
-            rect = py.Rect(250 * i - 200, 150, 150, TILE_SIZE * 2)
+            rect = py.Rect(250 * i - 200, 200, 150, TILE_SIZE)
         
             # Draw the rectangle to the screen
             py.draw.rect(screen, BLUE, rect)
@@ -233,7 +277,7 @@ class River(LaneManager):
             self.land.append(rect)
 
     ## make frog at center of log for now
-    def collision(self, frog):
+    def on_log(self, frog):
         for log in self.obj_group:
                 if log.rect.colliderect(frog.rect):
                     self.frog_on_log = True
@@ -258,11 +302,54 @@ class River(LaneManager):
                         return True
         return False
 
-
     
-
 class GameState:
-    pass                                  
+    def __init__(self, lives):
+        self.frog_score = 0
+        self.lives = lives
+        self.font = py.font.Font("frogger/PressStart2P.ttf",60)
+        self.time = 60
+        self.lose = False
+        self.frame_count = 0
+
+    def draw_thing(self):
+        py.draw.rect(screen, BLACK, (0, 0, WIDTH, 150))
+
+    def check_win(self, frog, type):
+        if frog.rect.y < 150:
+            self.frog_score += 10*self.time + 50
+            return "win"
+        
+        elif not type:
+            self.frog_score -= 100
+            self.lives -= 1
+
+        elif self.lives < 0:
+            return "lose"
+
+        elif self.time == 0 :
+            return "lose"
+        
+    def score(self):
+        # Render the score as text
+        score_text = self.font.render(f"SCORE:{self.frog_score}", True, WHITE)
+        screen.blit(score_text, (10, 10)) 
+
+    def show_lives(self, image):
+        image = py.transform.scale(image, (70, 70))
+        for i in range(self.lives):
+            screen.blit(image, (20 + i * 100, 70))
+
+    def update_timer(self):
+        self.frame_count += 1
+        if self.frame_count >= 60:  # Every 60 frames (1 second)
+            self.frame_count = 0  # Reset frame count
+            if self.time > 0:
+                self.time -= 1  
+
+    def show_time(self):
+        time_text = self.font.render(f"{self.time}", True, WHITE)
+        screen.blit(time_text, (HEIGHT//2, 100)) 
 
 ## Temporary Grid ##
 def draw_grid():
@@ -274,14 +361,20 @@ def draw_grid():
 
 car_CD = 0
 log_CD = 0
+lp_CD = 0 
+win = True
 
-log_type  = ["small","medium", "large"]
+
+## Sound ##
+py.mixer.music.load("frogger/music.mp3")
+# py.mixer.music.play()
+
+## Game Initialization ##
 frog = Frog()
 road = Road()
 river = River()
+gt = GameState(3)
 sprite = py.sprite.Group(frog)
-#car_sprite = py.sprite.Group()
-#log_sprite = py.sprite.Group()
 froggy_loggy = False
 
 pos = 0
@@ -297,7 +390,7 @@ while running:
         if ev.type == py.KEYDOWN:
             frog.move_frog()
 
-    
+    gt.update_timer()
     
     road.draw_lanes()
     river.draw_lanes()
@@ -313,34 +406,60 @@ while running:
 
     if car_CD == 0:
         x = random.randint(1,7)
-        car = random.choice(cars)
-        road.add_obj(x,"car", -6, car)
+        road.add_obj(x,"car", -6, random.choice(Car.cars))
 
-        car_CD = random.randint(1, 15)
+        car_CD = random.randint(5, 15)
     car_CD -=1    
 
     if log_CD == 0:
         y = random.randint(1,5)
-        river.add_obj(1300,"log", -6, random.choice(log_type))
+        river.add_obj(1300,"log", -6, None)
 
-        log_CD = random.randint(1, 15)
+        log_CD = random.randint(10, 20)
         
-    log_CD -=1    
+    log_CD -=1  
 
+    if lp_CD == 0:
+        y = random.randint(1,5)
+        river.add_obj(1300,"lily", -4, lilypad)
+
+        lp_CD = random.randint(10, 30)
+        
+    lp_CD -=1  
+
+
+    
     if road.collision(frog):
+        gt.check_win(frog, "lose")
+        win = False
         frog.reset_pos()
         
-    if not river.collision(frog):
+    if not river.on_log(frog):
         if river.off_log(frog):
+            win = False
             frog.reset_pos()
-        
+
+
 
     sprite.draw(screen)
     sprite.update()
     frog.on_tile()
-    draw_grid()
-
     
+
+    gt.draw_thing()
+    gt.score()
+    gt.show_lives(Frog.frog_)
+    gt.show_time()
+
+    if gt.check_win(frog, win) == "win":
+        frog.reset_pos()
+    elif gt.check_win(frog, win) == "lose":
+        py.quit()
+    else:
+        win = True
+
+    #draw_grid()
+
     animation.tick(60)
     py.display.flip()
     
