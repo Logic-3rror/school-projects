@@ -433,7 +433,7 @@ def frogger(hi_score, lives):
 
     ## Sound ##
     py.mixer.music.load("frogger/music.mp3")
-    # py.mixer.music.play()
+    py.mixer.music.play()
 
     ## Game Initialization ##
     frog = Frog()
