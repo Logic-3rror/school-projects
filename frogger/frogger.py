@@ -10,11 +10,7 @@ py.display.set_caption("Frogger")
 animation = py.time.Clock()
 
 
-lilypad = py.image.load("frogger/images/lilypad.png")
-
-## Sound ##
-py.mixer.music.load("frogger/music.mp3")
-# py.mixer.music.play()
+#lilypad = py.image.load("frogger/images/lilypad.png")
 
 TILE_SIZE = 50
 ROWS = HEIGHT // TILE_SIZE
@@ -61,7 +57,7 @@ class Frog(py.sprite.Sprite):
     def reset_pos(self):
          self.rect = self.image.get_rect(midbottom=self.original_pos)
         
-    def on_tile(self):
+    def on_tile(self, frog):
         frog.rect.x = (frog.rect.x//TILE_SIZE)*TILE_SIZE
         frog.rect.y = (frog.rect.y//TILE_SIZE)*TILE_SIZE
 
@@ -277,15 +273,15 @@ class River(LaneManager):
     ## make frog at center of log for now
     def on_log(self, frog):
         for log in self.obj_group:
-                if log.rect.colliderect(frog.rect):
-                    self.frog_on_log = True
-                    if self.frog_on_log :
-                        frog.rect.x = log.rect.centerx 
-                        frog.rect.y = log.rect.centery - 25
+            if log.rect.colliderect(frog.rect):
+                self.frog_on_log = True
+                if self.frog_on_log :
+                    frog.rect.x = log.rect.centerx 
+                    frog.rect.y = log.rect.centery - 25
                         
                         
-                        self.frog_on_log =  True  
-                        return self.frog_on_log 
+                    self.frog_on_log =  True  
+                    return self.frog_on_log 
                     
             # If no log is touching the frog, reset to spawn
         self.frog_on_log = False 
@@ -313,7 +309,8 @@ class GameState:
         self.lose = False
         self.frame_count = 0
 
-    def draw_thing(self):
+    @staticmethod
+    def draw_thing():
         py.draw.rect(screen, BLACK, (0, 0, WIDTH, 150))
 
     def check_win(self, frog, type):
@@ -329,17 +326,18 @@ class GameState:
             return "lose"
 
         elif self.time == 0 :
-            return "lose"
+            return "game_over"
         
-    def score(self):
-        score_text = self.font.render(f"SCORE:{self.frog_score}", True, WHITE)
-        screen.blit(score_text, (10, 10)) 
-
+    def get_hi_score(self):
         hi_score_text = self.font2.render(f"HIGH SCORE", True, (255, 90, 170))  # the text
         screen.blit(hi_score_text, (750, 10)) 
 
         hi_score_text2 = self.font2.render(f"{self.hi_score}", True, (255, 90, 170)) # the number
-        screen.blit(hi_score_text2, (935, 60)) 
+        screen.blit(hi_score_text2, (910, 60)) 
+        
+    def score(self):
+        score_text = self.font.render(f"SCORE:{self.frog_score}", True, WHITE)
+        screen.blit(score_text, (10, 10)) 
 
     def show_lives(self, image):
         image = py.transform.scale(image, (70, 70))
@@ -357,6 +355,65 @@ class GameState:
         time_text = self.font.render(f"{self.time}", True, WHITE)
         screen.blit(time_text, (HEIGHT//2, 100)) 
 
+    def draw_button(self, screen, location, size, text, mouse, events):
+        button_rect = py.Rect(location[0], location[1], size[0], size[1])
+
+        # Check for hover
+        if button_rect.collidepoint(mouse):
+            py.draw.rect(screen, LIGHT_GRAY, button_rect)
+        else:
+            py.draw.rect(screen, GRAY, button_rect)
+
+        # Draw button text
+        text_surface = self.font2.render(text, True, WHITE)
+        text_rect = text_surface.get_rect(center=button_rect.center)
+        screen.blit(text_surface, text_rect)
+
+        # Check for click
+        for event in events:
+            if event.type == py.MOUSEBUTTONDOWN and button_rect.collidepoint(mouse):
+                return True
+        return False
+
+    def menu(self):
+        running = True
+        while running:
+            mouse = py.mouse.get_pos()
+            events = py.event.get()
+
+            screen.fill(BLACK)  # Ensure screen is cleared before drawing
+
+            title_surface = self.font2.render("PLAY AGIN???", True, WHITE)
+            title_rect = title_surface.get_rect(center=(WIDTH // 2, 100))
+            screen.blit(title_surface, title_rect)
+
+            self.draw_button(screen, (500, 200), (200, 100), "YES", mouse, events)
+            self.draw_button(screen, (500, 400), (200, 100), "NO", mouse, events)
+
+            py.display.update()  # Update display after drawing buttons
+
+            # Update display after drawing buttons
+
+            for event in events:
+                if event.type == py.QUIT:
+                    quit()
+
+                if event.type == py.MOUSEBUTTONDOWN:
+                    if self.draw_button(screen, (500, 200), (200, 100), "YES", mouse, events):
+                        return "again"
+                    elif self.draw_button(screen, (500, 400), (200, 100), "NO", mouse, events):
+                        return "no"
+                    
+
+            py.display.update()
+
+    def show(self, image):
+        self.get_hi_score()
+        self.show_lives(image)
+        self.score()
+        self.show_time()
+
+
 ## Temporary Grid ##
 def draw_grid():
     for col in range(COLS + 1):
@@ -365,115 +422,119 @@ def draw_grid():
         py.draw.line(screen, WHITE, (0, row * TILE_SIZE), (WIDTH, row * TILE_SIZE))
 
 
-car_CD = 0
-log_CD = 0
-lp_CD = 0 
-win = True
-
-
-## Sound ##
-py.mixer.music.load("frogger/music.mp3")
-# py.mixer.music.play()
-
-## Game Initialization ##
-frog = Frog()
-road = Road()
-river = River()
-gt = GameState(3)
-sprite = py.sprite.Group(frog)
-froggy_loggy = False
-
-pos = 0
-
 ## Game Loop ##
-running = True
-while running:
-    screen.fill(GREEN)
+def frogger(hi_score, lives):
+    car_CD = 0
+    log_CD = 0
+    lp_CD = 0 
+    win = True
+
+    lilypad = py.image.load("frogger/images/lilypad.png")
+
+    ## Sound ##
+    py.mixer.music.load("frogger/music.mp3")
+    # py.mixer.music.play()
+
+    ## Game Initialization ##
+    frog = Frog()
+    road = Road()
+    river = River()
+    gt = GameState(lives)
+    sprite = py.sprite.Group(frog)
+    froggy_loggy = False
+
+
+    gt.hi_score = hi_score
+    running = True
+    while running:
+        screen.fill(GREEN)
+
+        for ev in py.event.get():
+            if ev.type == py.QUIT:
+                running = False
+            if ev.type == py.KEYDOWN:
+                frog.move_frog()
+
+        gt.update_timer()
+
+        road.draw_lanes()
+        river.draw_lanes()
+
+
+        road.draw_obj()
+        road.update()
+
+        river.draw_obj()
+        river.draw_land()
+        river.update()
     
-    for ev in py.event.get():
-        if ev.type == py.QUIT:
-            running = False
-        if ev.type == py.KEYDOWN:
-            frog.move_frog()
 
-    gt.update_timer()
-    
-    road.draw_lanes()
-    river.draw_lanes()
+        if car_CD == 0:
+            x = random.randint(1,7)
+            road.add_obj(x,"car", -6, random.choice(Car.cars))
 
-    
-    road.draw_obj()
-    road.update()
+            car_CD = random.randint(5, 15)
+        car_CD -=1    
 
-    river.draw_obj()
-    river.draw_land()
-    river.update()
-   
+        if log_CD == 0:
+            y = random.randint(1,5)
+            river.add_obj(1300,"log", -6, None)
 
-    if car_CD == 0:
-        x = random.randint(1,7)
-        road.add_obj(x,"car", -6, random.choice(Car.cars))
+            log_CD = random.randint(10, 20)
 
-        car_CD = random.randint(5, 15)
-    car_CD -=1    
+        log_CD -=1  
 
-    if log_CD == 0:
-        y = random.randint(1,5)
-        river.add_obj(1300,"log", -6, None)
+        if lp_CD == 0:
+            y = random.randint(1,5)
+            river.add_obj(1300,"lily", -4, lilypad)
 
-        log_CD = random.randint(10, 20)
-        
-    log_CD -=1  
+            lp_CD = random.randint(10, 30)
 
-    if lp_CD == 0:
-        y = random.randint(1,5)
-        river.add_obj(1300,"lily", -4, lilypad)
-
-        lp_CD = random.randint(10, 30)
-        
-    lp_CD -=1  
+        lp_CD -=1  
 
 
-    
-    if road.collision(frog):
-        gt.check_win(frog, "lose")
-        win = False
-        frog.reset_pos()
-        
-    if not river.on_log(frog):
-        if river.off_log(frog):
+
+        if road.collision(frog):
+            gt.check_win(frog, "lose")
             win = False
             frog.reset_pos()
 
+        if not river.on_log(frog):
+            if river.off_log(frog):
+                win = False
+                frog.reset_pos()
+
+        if gt.check_win(frog, "lose") == "gameover" or gt.check_win(frog, "lose") == "lose":
+            menu = gt.menu()
+            if menu == "no": py.quit()
+            else: frogger(gt.frog_score, 3)
+                
+
+        sprite.draw(screen)
+        sprite.update()
+        frog.on_tile(frog)
 
 
-    sprite.draw(screen)
-    sprite.update()
-    frog.on_tile()
-    
+        gt.draw_thing()
+        gt.show(Frog.frog_)
 
-    gt.draw_thing()
-    gt.score()
-    gt.show_lives(Frog.frog_)
-    gt.show_time()
+        temp = gt.check_win(frog, win)
 
-    temp = gt.check_win(frog, win)
+        if temp == "win":
+            frog.reset_pos()
 
-    if temp == "win":
-        frog.reset_pos()
+        elif temp == "lose":
+            gt.hi_score = gt.frog_score
+            #gt.reset() 
+        else:
+            win = True
 
-    elif temp == "lose":
-        gt.hi_score = gt.frog_score
-        #gt.reset() 
-    else:
-        win = True
+        draw_grid()
 
-    draw_grid()
-
-    animation.tick(60)
-    py.display.flip()
-    
-
-py.quit()
+        animation.tick(60)
+        py.display.flip()
 
 
+    py.quit()
+
+frogger(0, 3)
