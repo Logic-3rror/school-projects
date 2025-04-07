@@ -430,7 +430,6 @@ def frogger(hi_score, lives):
     py.mixer.music.load("frogger/music.mp3")
     py.mixer.music.play(loops=-1)
 
-
     ## Game Initialization ##
     frog = Frog()
     road = Road()
