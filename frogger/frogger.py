@@ -9,9 +9,6 @@ py.display.set_caption("Frogger")
 
 animation = py.time.Clock()
 
-
-#lilypad = py.image.load("frogger/images/lilypad.png")
-
 TILE_SIZE = 50
 ROWS = HEIGHT // TILE_SIZE
 COLS = WIDTH // TILE_SIZE
@@ -188,8 +185,6 @@ class LaneManager(py.sprite.Sprite):
               # no collision before adding
                 if self.spawn(obj):
                     self.obj_group.add(obj)
-        
-        
 
     def draw_obj(self):
         self.obj_group.draw(screen)
@@ -232,7 +227,6 @@ class Road(LaneManager):
                 break
         return bool_ 
             
-
 
 class Log(py.sprite.Sprite):
     def __init__(self, image, x, y, speed, log_group):
@@ -383,7 +377,7 @@ class GameState:
 
             screen.fill(BLACK)  # Ensure screen is cleared before drawing
 
-            title_surface = self.font2.render("PLAY AGIN???", True, WHITE)
+            title_surface = self.font2.render("PLAY AGAIN???", True, WHITE)
             title_rect = title_surface.get_rect(center=(WIDTH // 2, 100))
             screen.blit(title_surface, title_rect)
 
@@ -393,7 +387,6 @@ class GameState:
             py.display.update()  # Update display after drawing buttons
 
             # Update display after drawing buttons
-
             for event in events:
                 if event.type == py.QUIT:
                     quit()
@@ -403,16 +396,18 @@ class GameState:
                         return "again"
                     elif self.draw_button(screen, (500, 400), (200, 100), "NO", mouse, events):
                         return "no"
-                    
+                   
 
             py.display.update()
+
+    def increase_difficulty():
+        pass
 
     def show(self, image):
         self.get_hi_score()
         self.show_lives(image)
         self.score()
         self.show_time()
-
 
 ## Temporary Grid ##
 def draw_grid():
@@ -433,7 +428,8 @@ def frogger(hi_score, lives):
 
     ## Sound ##
     py.mixer.music.load("frogger/music.mp3")
-    # py.mixer.music.play()
+    py.mixer.music.play(loops=-1)
+
 
     ## Game Initialization ##
     frog = Frog()
@@ -441,7 +437,6 @@ def frogger(hi_score, lives):
     river = River()
     gt = GameState(lives)
     sprite = py.sprite.Group(frog)
-    froggy_loggy = False
 
 
     gt.hi_score = hi_score
@@ -477,22 +472,16 @@ def frogger(hi_score, lives):
         car_CD -=1    
 
         if log_CD == 0:
-            y = random.randint(1,5)
             river.add_obj(1300,"log", -6, None)
-
             log_CD = random.randint(10, 20)
 
         log_CD -=1  
 
         if lp_CD == 0:
-            y = random.randint(1,5)
             river.add_obj(1300,"lily", -4, lilypad)
-
             lp_CD = random.randint(10, 30)
 
         lp_CD -=1  
-
-
 
         if road.collision(frog):
             gt.check_win(frog, "lose")
@@ -514,7 +503,6 @@ def frogger(hi_score, lives):
         sprite.update()
         frog.on_tile(frog)
 
-
         gt.draw_thing()
         gt.show(Frog.frog_)
 
@@ -522,6 +510,8 @@ def frogger(hi_score, lives):
 
         if temp == "win":
             frog.reset_pos()
+           #gt.increase_difficulty()
+            gt.time = 60
 
         elif temp == "lose":
             gt.hi_score = gt.frog_score
@@ -529,7 +519,7 @@ def frogger(hi_score, lives):
         else:
             win = True
 
-        draw_grid()
+        #draw_grid()
 
         animation.tick(60)
         py.display.flip()
